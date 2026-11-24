@@ -1,6 +1,14 @@
-name: RandomSpawn
-version: 1.0
-main: me.MoobinJang.randomspawn.RandomSpawnPlugin
-api-version: 1.21
-author: MoobinJang
-description: Connect to a random spawn when first connecting
+name: FixedRandomSpawn
+version: 1.0.0
+main: dev.fixedspawn.FixedRandomSpawn
+api-version: '26.3'
+commands:
+  fixedspawn:
+    aliases: [fs]
+    description: 플레이어별 기본 스폰을 관리합니다.
+    usage: /fixedspawn <start|stop|status|reload|reroll|set>
+    permission: fixedspawn.admin
+permissions:
+  fixedspawn.admin:
+    description: 고정 랜덤 스폰 관리
+    default: op
