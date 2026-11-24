@@ -105,9 +105,9 @@ public final class FixedRandomSpawn extends JavaPlugin implements Listener {
         if (point != null) {
             return point;
         }
-        point = region.find(null);
+        point = region.find(id, store.points());
         if (point == null) {
-            getLogger().warning("설정 범위에서 안전한 스폰을 찾지 못했습니다: " + id);
+            getLogger().warning("설정 범위에서 안전 조건과 최소 간격을 충족하는 스폰을 찾지 못했습니다: " + id);
         } else {
             savePoint(id, point);
         }
@@ -156,7 +156,7 @@ public final class FixedRandomSpawn extends JavaPlugin implements Listener {
                     SpawnRegion reloaded = readRegion();
                     reloaded.world();
                     region = reloaded;
-                    sender.sendMessage("랜덤 스폰 범위를 다시 읽었습니다.");
+                    sender.sendMessage("랜덤 스폰 설정을 다시 읽었습니다. 최소 간격: " + region.minDistance() + "블록");
                 }
                 case "reroll" -> {
                     if (args.length != 2) {
@@ -164,9 +164,9 @@ public final class FixedRandomSpawn extends JavaPlugin implements Listener {
                         return true;
                     }
                     UUID id = playerId(args[1]);
-                    SpawnStore.Point point = region.find(store.points().get(id));
+                    SpawnStore.Point point = region.find(id, store.points());
                     if (point == null) {
-                        sender.sendMessage("범위 안에서 기존 위치와 다른 안전한 스폰을 찾지 못했습니다.");
+                        sender.sendMessage("범위 안에서 안전 조건과 최소 간격을 충족하는 새 스폰을 찾지 못했습니다.");
                         return true;
                     }
                     savePoint(id, point);
@@ -209,10 +209,10 @@ public final class FixedRandomSpawn extends JavaPlugin implements Listener {
             if (updated.containsKey(id)) {
                 continue;
             }
-            SpawnStore.Point point = region.find(null);
+            SpawnStore.Point point = region.find(id, updated);
             if (point == null) {
                 failed++;
-                getLogger().warning("설정 범위에서 안전한 스폰을 찾지 못했습니다: " + player.getName());
+                getLogger().warning("설정 범위에서 안전 조건과 최소 간격을 충족하는 스폰을 찾지 못했습니다: " + player.getName());
             } else {
                 updated.put(id, point);
                 assigned++;

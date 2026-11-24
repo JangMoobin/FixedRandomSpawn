@@ -6,14 +6,19 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.util.BoundingBox;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ, int attempts) {
+record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ,
+                   int attempts, int minDistance) {
     private static final int LIMIT = 29_999_983;
+    private static final int DEFAULT_MIN_DISTANCE = 32;
     private static final Set<Material> HAZARDS = Set.of(
             Material.LAVA, Material.WATER, Material.POWDER_SNOW, Material.FIRE,
             Material.SOUL_FIRE, Material.MAGMA_BLOCK, Material.CACTUS,
@@ -32,7 +37,9 @@ record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ, int
             throw new IllegalArgumentException("각 축의 최소 좌표는 최대 좌표 이하여야 합니다.");
         }
         return new SpawnRegion(config.getString("world").trim(), minX, maxX, minZ, maxZ,
-                number(config, "attempts", 1, 256));
+                number(config, "attempts", 1, 256),
+                config.contains("min-distance") ? number(config, "min-distance", 0, Integer.MAX_VALUE)
+                        : DEFAULT_MIN_DISTANCE);
     }
 
     private static int number(YamlConfiguration config, String key, int min, int max) {
@@ -50,14 +57,18 @@ record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ, int
         return world;
     }
 
-    SpawnStore.Point find(SpawnStore.Point previous) {
+    SpawnStore.Point find(UUID player, Map<UUID, SpawnStore.Point> assigned) {
         World world = world();
+        UUID worldId = world.getUID();
+        SpawnStore.Point previous = assigned.get(player);
+        double minDistanceSquared = (double) minDistance * minDistance;
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int attempt = 0; attempt < attempts; attempt++) {
             int x = random.nextInt(minX, maxX + 1);
             int z = random.nextInt(minZ, maxZ + 1);
             Location candidate = new Location(world, x + 0.5, world.getMinHeight(), z + 0.5);
-            if (!world.getWorldBorder().isInside(candidate) || sameColumn(previous, world, x, z)) {
+            if (!world.getWorldBorder().isInside(candidate) || sameColumn(previous, worldId, x, z)
+                    || tooClose(player, assigned, worldId, candidate, minDistanceSquared)) {
                 continue;
             }
             // The height map can give an empty result on an unloaded chunk.
@@ -67,7 +78,7 @@ record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ, int
                 continue;
             }
             Block ground = world.getBlockAt(x, groundY, z);
-            if (!ground.getType().isSolid() || !ground.getCollisionShape().overlaps(
+            if (!ground.getType().isSolid() || !dry(ground) || !ground.getCollisionShape().overlaps(
                     new BoundingBox(0.49, 0.99, 0.49, 0.51, 1, 0.51))
                     || HAZARDS.contains(ground.getType())
                     || !clear(world.getBlockAt(x, groundY + 1, z))
@@ -80,12 +91,35 @@ record SpawnRegion(String worldName, int minX, int maxX, int minZ, int maxZ, int
         return null;
     }
 
-    private static boolean sameColumn(SpawnStore.Point previous, World world, int x, int z) {
-        return previous != null && previous.world().equals(world.getUID())
+    private static boolean sameColumn(SpawnStore.Point previous, UUID world, int x, int z) {
+        return previous != null && previous.world().equals(world)
                 && Location.locToBlock(previous.x()) == x && Location.locToBlock(previous.z()) == z;
     }
 
+    private static boolean tooClose(UUID player, Map<UUID, SpawnStore.Point> assigned, UUID world,
+                                    Location candidate, double minDistanceSquared) {
+        if (minDistanceSquared == 0) {
+            return false;
+        }
+        for (var entry : assigned.entrySet()) {
+            SpawnStore.Point point = entry.getValue();
+            if (player.equals(entry.getKey()) || !world.equals(point.world())) {
+                continue;
+            }
+            double deltaX = candidate.getX() - point.x();
+            double deltaZ = candidate.getZ() - point.z();
+            if (deltaX * deltaX + deltaZ * deltaZ < minDistanceSquared) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean clear(Block block) {
-        return block.isPassable() && !block.isLiquid() && !HAZARDS.contains(block.getType());
+        return block.isPassable() && dry(block) && !HAZARDS.contains(block.getType());
+    }
+
+    private static boolean dry(Block block) {
+        return !block.isLiquid() && !(block.getBlockData() instanceof Waterlogged data && data.isWaterlogged());
     }
 }
