@@ -4,9 +4,11 @@ Minecraft Java Edition용 Paper 26.3 플러그인입니다. Java 25가 필요하
 
 ## 설치
 
-1. `fixed-random-spawn-1.0.0.jar`를 서버의 `plugins/` 폴더에 넣고 서버를 시작합니다.
+1. `fixed-random-spawn-2.0.0.jar`를 서버의 `plugins/` 폴더에 넣고 서버를 시작합니다.
 2. `plugins/FixedRandomSpawn/config.yml`에서 `world`, `min-x`, `max-x`, `min-z`, `max-z`를 설정합니다. 기본값은 서버 기본 리스폰 월드의 X/Z 각각 -128~128입니다. 양 끝 블록을 포함하며 Y는 지형을 보고 정합니다.
 3. 관리자 권한으로 `/fs reload` 후 `/fs start`를 실행합니다. 서버 콘솔에서는 앞의 슬래시를 생략합니다.
+
+기존 RandomSpawn에서 업그레이드하는 경우 기존 JAR를 교체하고 새 설정 파일에 스폰 범위를 지정하세요. 기존 설정과 플레이어 스폰 좌표는 자동으로 이전되지 않습니다.
 
 ## 명령어
 
@@ -30,4 +32,4 @@ Minecraft Java Edition용 Paper 26.3 플러그인입니다. Java 25가 필요하
 
 ## 빌드
 
-Java 25와 Maven으로 `mvn package`를 실행하면 `target/fixed-random-spawn-1.0.0.jar`가 만들어집니다.
+Java 25와 Maven으로 `mvn package`를 실행하면 `target/fixed-random-spawn-2.0.0.jar`가 만들어집니다.

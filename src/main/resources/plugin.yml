@@ -1,5 +1,5 @@
 name: FixedRandomSpawn
-version: 1.0.0
+version: 2.0.0
 main: dev.fixedspawn.FixedRandomSpawn
 api-version: '26.3'
 commands:
